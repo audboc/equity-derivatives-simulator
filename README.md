@@ -226,7 +226,7 @@ Ce projet est un outil pédagogique, pas un outil de desk. Principales limites, 
 
 ## Interface interactive (Streamlit)
 
-**App en ligne : [equity-derivatives-simulator-dwq3mg6dbnry6sazn6syej.streamlit.app](https://equity-derivatives-simulator-dwq3mg6dbnry6sazn6syej.streamlit.app)** (hébergement gratuit Streamlit Community Cloud — l'app peut mettre quelques secondes à se réveiller après une période d'inactivité).
+**App en ligne : [equity-derivatives-simulator-wgrj8rugktksm3x3qh4jpz.streamlit.app](https://equity-derivatives-simulator-wgrj8rugktksm3x3qh4jpz.streamlit.app)** (hébergement gratuit Streamlit Community Cloud — l'app peut mettre quelques secondes à se réveiller après une période d'inactivité).
 
 `app.py`, à la racine du projet, expose 4 onglets pour explorer les paramètres en direct sans toucher au code : **Pricing & Greeks** (sliders S/K/T/r/σ/q, prix et Greeks recalculés en temps réel + graphique de comparaison sur 3 niveaux de vol), **Smile de vol implicite** (paramètres de la courbe synthétique ajustables), **Delta hedging** (choix du mode de rebalancement — intervalle fixe ou seuil —, P&L et graphique à 3 panneaux), **Dispersion** (sélection des tickers du panier, corrélation et vols recalculés via `yfinance`).
 
