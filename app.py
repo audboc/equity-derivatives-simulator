@@ -142,7 +142,7 @@ with tab_dispersion:
 
     if len(tickers) < 2:
         st.warning("Choisir au moins 2 tickers.")
-    else:
+    elif st.button("Analyser"):
         try:
             with st.spinner("Téléchargement des prix et calcul en cours..."):
                 fig_dispersion, dispersion_result = plot_dispersion_analysis(tickers=tickers, period=period,
