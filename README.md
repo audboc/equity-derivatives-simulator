@@ -1,5 +1,7 @@
 # Equity Derivatives Pricing and Hedging Simulator
 
+*🇬🇧 English version: branch [`main`](https://github.com/audboc/equity-derivatives-simulator)*
+
 ## Introduction
 
 Ce projet part du modèle de Black-Scholes pour construire, étape par étape, un simulateur de pricing et de couverture d'options sur actions : calcul du prix d'un call/put européen, des Greeks (delta, gamma, vega, theta, rho), de la volatilité implicite, simulation du sous-jacent, et delta hedging avec analyse du P&L résultant.
