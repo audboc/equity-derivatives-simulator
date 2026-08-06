@@ -4,15 +4,15 @@ from scipy.stats import norm
 
 def black_scholes_call(S, K, T, r, sigma, q=0):
     """
-    Calcule le prix théorique d'un call européen
-    avec Black-Scholes et dividende continu.
+    Computes the theoretical price of a European call
+    with Black-Scholes and a continuous dividend.
 
-    S : prix actuel du sous-jacent
+    S : current price of the underlying
     K : strike
-    T : maturité en années
-    r : taux d'intérêt annuel
-    sigma : volatilité annuelle
-    q : rendement de dividende annuel
+    T : maturity in years
+    r : annual interest rate
+    sigma : annual volatility
+    q : annual dividend yield
     """
 
     d1 = (log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
@@ -26,29 +26,29 @@ def black_scholes_call(S, K, T, r, sigma, q=0):
 
 def black_scholes_put(S, K, T, r, sigma, q=0):
     """
-    Calcule le prix théorique d'un put européen
-    avec Black-Scholes et dividende continu.
+    Computes the theoretical price of a European put
+    with Black-Scholes and a continuous dividend.
 
-    S : prix actuel du sous-jacent
+    S : current price of the underlying
     K : strike
-    T : maturité en années
-    r : taux d'intérêt annuel
-    sigma : volatilité annuelle
-    q : rendement de dividende annuel
+    T : maturity in years
+    r : annual interest rate
+    sigma : annual volatility
+    q : annual dividend yield
     """
 
     d1 = (log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
 
     d2 = d1 - sigma * sqrt(T)
 
-    put_price = (K * exp(-r * T) * norm.cdf(-d2)- S * exp(-q * T) * norm.cdf(-d1)) #c'est -d1 et -d2 qui changent p
+    put_price = (K * exp(-r * T) * norm.cdf(-d2)- S * exp(-q * T) * norm.cdf(-d1)) # -d1 and -d2 are what changes
 
     return put_price
 
 
 if __name__ == "__main__":
 
-    # Exemple sans dividende
+    # Example without dividend
 
     price_without_dividend = black_scholes_call(
         S=100,
@@ -58,10 +58,10 @@ if __name__ == "__main__":
         sigma=0.20
     )
 
-    print(f"Prix du call sans dividende : {price_without_dividend:.2f} €")
+    print(f"Call price without dividend: {price_without_dividend:.2f} $")
 
 
-    # Exemple avec un rendement de dividende de 2 %
+    # Example with a 2% dividend yield
 
     price_with_dividend = black_scholes_call(
         S=100,
@@ -72,10 +72,10 @@ if __name__ == "__main__":
         q=0.02
     )
 
-    print(f"Prix du call avec dividende : {price_with_dividend:.2f} €")
+    print(f"Call price with dividend: {price_with_dividend:.2f} $")
 
 
-    # Exemple de put sans dividende
+    # Put example without dividend
 
     put_price_without_dividend = black_scholes_put(
         S=100,
@@ -85,10 +85,10 @@ if __name__ == "__main__":
         sigma=0.20
     )
 
-    print(f"Prix du put sans dividende : "f"{put_price_without_dividend:.2f} €")
+    print(f"Put price without dividend: "f"{put_price_without_dividend:.2f} $")
 
 
-    # Exemple de put avec un dividende de 2 %
+    # Put example with a 2% dividend
 
     put_price_with_dividend = black_scholes_put(
         S=100,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         q=0.02
     )
 
-    print( f"Prix du put avec dividende : "f"{put_price_with_dividend:.2f} €")
+    print( f"Put price with dividend: "f"{put_price_with_dividend:.2f} $")
 
 
     # Put-Call Parity (verification of black & scholes results) => C - P = S*exp(-q*T) - K*exp(-r*T)#

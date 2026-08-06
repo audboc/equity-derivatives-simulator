@@ -6,26 +6,26 @@ import yfinance as yf
 
 def fetch_price_history(ticker, period="2y", interval="1d"):
     """
-    Télécharge l'historique de prix d'un actif via yfinance (Yahoo Finance) et retourne
-    les prix de clôture (ajustés des dividendes/splits) sous forme de Series pandas,
-    indexée par date.
+    Downloads an asset's price history via yfinance (Yahoo Finance) and returns
+    the closing prices (adjusted for dividends/splits) as a pandas Series,
+    indexed by date.
 
-    ticker : symbole yfinance (ex : "^GSPC" pour le S&P 500, "AAPL" pour Apple)
-    period : durée d'historique demandée (ex : "1y", "2y", "5y", "max")
-    interval : fréquence des données (ex : "1d" pour quotidien)
+    ticker : yfinance symbol (e.g. "^GSPC" for the S&P 500, "AAPL" for Apple)
+    period : length of history requested (e.g. "1y", "2y", "5y", "max")
+    interval : data frequency (e.g. "1d" for daily)
     """
 
     data = yf.Ticker(ticker).history(period=period, interval=interval, auto_adjust=True)
 
     if data.empty:
-        raise ValueError(f"Aucune donnée récupérée pour {ticker} (ticker invalide ou pas de connexion réseau).")
+        raise ValueError(f"No data retrieved for {ticker} (invalid ticker or no network connection).")
 
     return data["Close"]
 
 
 def compute_log_returns(prices):
     """
-    Calcule les rendements logarithmiques d'une série de prix : r_t = ln(S_t / S_{t-1}).
+    Computes the logarithmic returns of a price series: r_t = ln(S_t / S_{t-1}).
     """
 
     return np.log(prices / prices.shift(1)).dropna()
@@ -33,8 +33,8 @@ def compute_log_returns(prices):
 
 def compute_realized_volatility(log_returns, trading_days=252):
     """
-    Calcule la volatilité réalisée annualisée sur toute la période : écart-type des
-    rendements logarithmiques, annualisé par racine(nombre de jours de trading par an).
+    Computes the annualized realized volatility over the whole period: standard
+    deviation of the log returns, annualized by the square root of trading days per year.
     """
 
     return log_returns.std() * sqrt(trading_days)
@@ -42,8 +42,8 @@ def compute_realized_volatility(log_returns, trading_days=252):
 
 def compute_rolling_realized_volatility(log_returns, window=21, trading_days=252):
     """
-    Calcule la volatilité réalisée annualisée en fenêtre glissante (par défaut 21 jours,
-    environ un mois de trading), pour visualiser son évolution dans le temps.
+    Computes the annualized realized volatility over a rolling window (21 days by
+    default, roughly one month of trading), to visualize how it evolves over time.
     """
 
     return log_returns.rolling(window).std() * sqrt(trading_days)
@@ -51,12 +51,12 @@ def compute_rolling_realized_volatility(log_returns, window=21, trading_days=252
 
 if __name__ == "__main__":
 
-    # S&P 500 et Apple : les mêmes fonctions marchent avec n'importe quel ticker yfinance
-    # (ex : "MSFT", "NVDA", "AMZN", "META", "JPM", ...), il suffit de changer le ticker.
+    # S&P 500 and Apple: the same functions work with any yfinance ticker
+    # (e.g. "MSFT", "NVDA", "AMZN", "META", "JPM", ...), just change the ticker.
 
     for ticker in ["^GSPC", "AAPL"]:
         prices = fetch_price_history(ticker, period="2y")
         log_returns = compute_log_returns(prices)
         realized_vol = compute_realized_volatility(log_returns)
 
-        print(f"{ticker} : vol réalisée annualisée sur 2 ans = {realized_vol:.2%}")
+        print(f"{ticker}: annualized realized vol over 2 years = {realized_vol:.2%}")

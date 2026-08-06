@@ -5,18 +5,18 @@ import numpy as np
 
 def simulate_gbm_path(S0, mu, sigma, T, n_steps, q=0, seed=None):
     """
-    Simule une trajectoire du sous-jacent par mouvement brownien géométrique :
+    Simulates a path of the underlying via geometric Brownian motion:
 
         S(t+dt) = S(t) * exp[(mu - q - 0.5*sigma^2)*dt + sigma*sqrt(dt)*Z]
 
-    S0 : spot de départ
-    mu : rendement attendu (r en univers risque-neutre, ou un rendement réel pour du P&L)
-    sigma : volatilité réalisée de la simulation
-    T : horizon total en années
-    n_steps : nombre de pas de temps
-    q : rendement de dividende continu
+    S0 : starting spot
+    mu : expected return (r under the risk-neutral measure, or a real-world return for P&L)
+    sigma : realized volatility of the simulation
+    T : total horizon in years
+    n_steps : number of time steps
+    q : continuous dividend yield
 
-    Retourne un tableau numpy de taille n_steps+1 (S0 inclus en première position).
+    Returns a numpy array of size n_steps+1 (S0 included as the first entry).
     """
 
     rng = np.random.default_rng(seed)
@@ -34,21 +34,21 @@ def simulate_gbm_path(S0, mu, sigma, T, n_steps, q=0, seed=None):
 
 if __name__ == "__main__":
 
-    # Une trajectoire simple, pour voir à quoi ressemble le résultat
+    # A simple path, to see what the result looks like
     path = simulate_gbm_path(S0=100, mu=0.05, sigma=0.20, T=1, n_steps=252, seed=42)
 
-    print(f"Spot de départ : {path[0]:.2f}")
-    print(f"Spot final     : {path[-1]:.2f}")
-    print(f"Nombre de points : {len(path)}")
+    print(f"Starting spot: {path[0]:.2f}")
+    print(f"Final spot   : {path[-1]:.2f}")
+    print(f"Number of points: {len(path)}")
 
-    # Vérification statistique : sur beaucoup de trajectoires, la moyenne des spots
-    # finaux doit converger vers S0 * exp((mu - q) * T) (propriété du GBM)
+    # Statistical check: over many paths, the average final spot should
+    # converge to S0 * exp((mu - q) * T) (a property of GBM)
     n_paths = 20_000
     finals = [simulate_gbm_path(S0=100, mu=0.05, sigma=0.20, T=1, n_steps=252)[-1] for _ in range(n_paths)]
 
     empirical_mean = np.mean(finals)
     theoretical_mean = 100 * exp(0.05 * 1)
 
-    print(f"\nSur {n_paths} trajectoires :")
-    print(f"Moyenne empirique des spots finaux : {empirical_mean:.2f}")
-    print(f"Moyenne théorique (S0 * exp(mu*T))  : {theoretical_mean:.2f}")
+    print(f"\nOver {n_paths} paths:")
+    print(f"Empirical mean of final spots : {empirical_mean:.2f}")
+    print(f"Theoretical mean (S0 * exp(mu*T)): {theoretical_mean:.2f}")

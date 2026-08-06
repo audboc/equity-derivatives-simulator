@@ -8,9 +8,9 @@ from market_data import fetch_price_history, compute_log_returns, compute_realiz
 
 def fetch_basket_prices(tickers, period="2y", interval="1d"):
     """
-    Télécharge l'historique de prix de plusieurs actions et les aligne dans un seul
-    DataFrame (une colonne par ticker), en ne gardant que les dates communes à tous
-    les tickers.
+    Downloads the price history of several stocks and aligns them into a single
+    DataFrame (one column per ticker), keeping only the dates common to all
+    tickers.
     """
 
     prices = {ticker: fetch_price_history(ticker, period=period, interval=interval) for ticker in tickers}
@@ -19,8 +19,8 @@ def fetch_basket_prices(tickers, period="2y", interval="1d"):
 
 def compute_correlation_matrix(log_returns_df):
     """
-    Calcule la matrice de corrélation des rendements entre toutes les paires d'actions
-    du panier.
+    Computes the correlation matrix of returns between every pair of stocks
+    in the basket.
     """
 
     return log_returns_df.corr()
@@ -28,12 +28,12 @@ def compute_correlation_matrix(log_returns_df):
 
 def compute_basket_level(prices_df, weights):
     """
-    Construit le niveau d'un "mini-indice" = panier pondéré des actions. Chaque action
-    est d'abord indexée à 100 à la date de départ (pour que son prix en dollars ne
-    fausse pas le poids qu'on lui donne), puis les niveaux indexés sont sommés avec
-    les poids `weights`.
+    Builds the level of a "mini-index" = weighted basket of stocks. Each stock
+    is first indexed to 100 at the start date (so that its dollar price doesn't
+    distort the weight it's given), then the indexed levels are summed using
+    the `weights`.
 
-    weights : dict {ticker: poids}, doit sommer à 1.
+    weights : dict {ticker: weight}, must sum to 1.
     """
 
     indexed = 100 * prices_df / prices_df.iloc[0]
@@ -44,14 +44,14 @@ def compute_basket_level(prices_df, weights):
 
 def compute_basket_volatility_formula(vols, corr_matrix, weights):
     """
-    Reconstruit la volatilité annualisée du panier "par le bas" (bottom-up), à partir
-    des vols individuelles + de la matrice de corrélation + des poids, via la formule
-    de variance d'une somme pondérée : σ_panier² = wᵀ Σ w, avec Σ_ij = σ_i σ_j ρ_ij
-    (matrice de covariance construite depuis les vols et la corrélation).
+    Reconstructs the basket's annualized volatility "from the bottom up", from
+    the individual vols + the correlation matrix + the weights, via the
+    variance formula for a weighted sum: σ_basket² = wᵀ Σ w, with Σ_ij = σ_i σ_j ρ_ij
+    (covariance matrix built from the vols and the correlation).
 
-    vols : dict {ticker: vol annualisée}
-    corr_matrix : DataFrame de corrélation (mêmes tickers que vols/weights)
-    weights : dict {ticker: poids}
+    vols : dict {ticker: annualized vol}
+    corr_matrix : correlation DataFrame (same tickers as vols/weights)
+    weights : dict {ticker: weight}
     """
 
     tickers = corr_matrix.columns
@@ -66,19 +66,19 @@ def compute_basket_volatility_formula(vols, corr_matrix, weights):
 
 def analyze_dispersion(tickers, weights=None, period="2y", trading_days=252):
     """
-    Pipeline complet de dispersion réalisée sur un panier d'actions :
-      1. télécharge les prix des actions et calcule la vol réalisée de chacune + leur
-         matrice de corrélation
-      2. construit le niveau du "mini-indice" (panier pondéré) et calcule sa vol
-         réalisée directement sur sa propre série
-      3. reconstruit cette même vol "par la formule" (vols individuelles + corrélation),
-         pour vérifier que les deux méthodes concordent (round-trip)
+    Full realized-dispersion pipeline on a stock basket:
+      1. downloads stock prices and computes each one's realized vol + their
+         correlation matrix
+      2. builds the "mini-index" level (weighted basket) and computes its
+         realized vol directly on its own series
+      3. reconstructs that same vol "via the formula" (individual vols + correlation),
+         to check that the two methods agree (round-trip)
 
-    weights : dict {ticker: poids}, par défaut équipondéré si non fourni.
+    weights : dict {ticker: weight}, defaults to equal-weighted if not provided.
 
-    Retourne un dict avec toutes les quantités intermédiaires (vols individuelles,
-    matrice de corrélation, série du panier, vol directe vs vol formule, moyenne
-    pondérée des vols individuelles), prêtes à être affichées ou tracées.
+    Returns a dict with all the intermediate quantities (individual vols,
+    correlation matrix, basket series, direct vol vs formula vol, weighted
+    average of individual vols), ready to be displayed or plotted.
     """
 
     if weights is None:
@@ -116,13 +116,13 @@ if __name__ == "__main__":
     tickers = ["AAPL", "MSFT", "NVDA", "AMZN", "META"]
     result = analyze_dispersion(tickers)
 
-    print("Vols réalisées annualisées (2 ans) :")
+    print("Annualized realized vols (2 years):")
     for ticker in tickers:
-        print(f"  {ticker} : {result['vols'][ticker]:.2%}")
+        print(f"  {ticker}: {result['vols'][ticker]:.2%}")
 
-    print("\nMatrice de corrélation :")
+    print("\nCorrelation matrix:")
     print(result["corr_matrix"].round(2))
 
-    print(f"\nVol du panier (directe, sur la vraie série du panier) : {result['basket_vol_direct']:.2%}")
-    print(f"Vol du panier (formule, vols + corrélation)            : {result['basket_vol_formula']:.2%}")
-    print(f"Moyenne pondérée des vols individuelles                : {result['weighted_avg_component_vol']:.2%}")
+    print(f"\nBasket vol (direct, on the real basket series): {result['basket_vol_direct']:.2%}")
+    print(f"Basket vol (formula, vols + correlation)       : {result['basket_vol_formula']:.2%}")
+    print(f"Weighted average of individual vols             : {result['weighted_avg_component_vol']:.2%}")

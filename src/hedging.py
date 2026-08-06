@@ -10,33 +10,34 @@ from simulation import simulate_gbm_path
 def delta_hedge_call(S0, K, T, r, sigma_realized, sigma_implied=None, q=0, n_steps=252,
                       rebalance_every=1, rebalance_threshold=None, seed=None, price_path=None):
     """
-    Simule la vente d'un call européen, couvert par delta hedging, sur une trajectoire
-    du sous-jacent (simulée par défaut, ou une vraie trajectoire si price_path est fourni).
+    Simulates selling a European call, hedged via delta hedging, over a path
+    of the underlying (simulated by default, or a real path if price_path is given).
 
-    sigma_realized : vol utilisée pour simuler la trajectoire du sous-jacent (le "vrai" monde).
-                      Ignorée pour la génération de la trajectoire si price_path est fourni
-                      (mais reste utile comme référence, ex : vol réalisée mesurée sur ce chemin).
-    sigma_implied : vol utilisée pour pricer et calculer le delta (le prix auquel l'option a
-                    été vendue). Égale à sigma_realized par défaut si non précisée.
-    rebalance_every : nombre de pas entre deux rebalancements (1 = à chaque pas, 5 = environ
-                       chaque semaine si n_steps=252). Ignoré si rebalance_threshold est précisé.
-    rebalance_threshold : si précisé (ex : 0.05), on rebalance dès que le delta théorique
-                           s'écarte du delta détenu de plus de ce seuil, plutôt qu'à intervalle
-                           fixe. Remplace rebalance_every quand il est utilisé.
-    price_path : trajectoire déjà connue (ex : prix réels récupérés via market_data.py) à
-                 utiliser à la place d'une simulation GBM. Doit contenir exactement n_steps+1
-                 points, avec price_path[0] == S0. Si None (par défaut), la trajectoire est
-                 simulée avec simulate_gbm_path comme avant.
+    sigma_realized : vol used to simulate the underlying's path (the "real" world).
+                      Ignored for path generation if price_path is given
+                      (but still useful as a reference, e.g. realized vol measured on that path).
+    sigma_implied : vol used to price the option and compute the delta (the price at which
+                    the option was sold). Defaults to sigma_realized if not specified.
+    rebalance_every : number of steps between two rebalances (1 = every step, 5 = roughly
+                       weekly if n_steps=252). Ignored if rebalance_threshold is specified.
+    rebalance_threshold : if specified (e.g. 0.05), rebalancing happens as soon as the
+                           theoretical delta drifts from the held delta by more than this
+                           threshold, instead of on a fixed interval. Overrides rebalance_every
+                           when used.
+    price_path : an already-known path (e.g. real prices fetched via market_data.py) to
+                 use instead of a GBM simulation. Must contain exactly n_steps+1
+                 points, with price_path[0] == S0. If None (default), the path is
+                 simulated with simulate_gbm_path as before.
 
-    Logique (point de vue du vendeur de l'option) :
-    - on encaisse la prime en vendant le call
-    - on achète delta actions pour se couvrir, financé par le cash restant
-    - à chaque pas : le cash accrue au taux sans risque, le delta théorique est recalculé ;
-      on ne rebalance (achète/vend des actions) que si le déclencheur choisi est atteint
-    - à l'échéance : on rebalance une dernière fois pour liquider, puis on paie le payoff
+    Logic (from the option seller's point of view):
+    - collect the premium by selling the call
+    - buy delta shares to hedge, financed by the remaining cash
+    - at each step: cash accrues at the risk-free rate, the theoretical delta is recomputed;
+      rebalancing (buying/selling shares) only happens if the chosen trigger is reached
+    - at expiry: rebalance one last time to liquidate, then pay the payoff
 
-    Retourne un dictionnaire avec la trajectoire, l'historique du delta (cible et détenu),
-    le nombre de rebalancements, et le P&L final de la stratégie de couverture.
+    Returns a dictionary with the path, the delta history (target and held),
+    the number of rebalances, and the final P&L of the hedging strategy.
     """
 
     if sigma_implied is None:
@@ -47,16 +48,16 @@ def delta_hedge_call(S0, K, T, r, sigma_realized, sigma_implied=None, q=0, n_ste
     if price_path is not None:
         path = np.asarray(price_path, dtype=float)
         if len(path) != n_steps + 1:
-            raise ValueError(f"price_path doit avoir n_steps+1={n_steps + 1} points, reçu {len(path)}.")
+            raise ValueError(f"price_path must have n_steps+1={n_steps + 1} points, got {len(path)}.")
         if not np.isclose(path[0], S0):
-            raise ValueError(f"price_path[0]={path[0]} doit être égal à S0={S0}.")
+            raise ValueError(f"price_path[0]={path[0]} must equal S0={S0}.")
     else:
         path = simulate_gbm_path(S0, mu=r, sigma=sigma_realized, T=T, n_steps=n_steps, q=q, seed=seed)
 
     option_price_0 = black_scholes_call(S0, K, T, r, sigma_implied, q)
     delta_0 = call_delta(S0, K, T, r, sigma_implied, q)
 
-    # Prime encaissée moins le coût d'achat des actions de couverture
+    # Premium collected minus the cost of buying the hedging shares
     cash = option_price_0 - delta_0 * S0
     shares_held = delta_0
 
@@ -81,7 +82,7 @@ def delta_hedge_call(S0, K, T, r, sigma_realized, sigma_implied=None, q=0, n_ste
             target_delta = 1.0 if S_t > K else 0.0
             option_value = max(S_t - K, 0)
 
-        # On rebalance soit par seuil, soit à intervalle fixe, et toujours au dernier pas (liquidation)
+        # Rebalance either by threshold or on a fixed interval, and always on the last step (liquidation)
         if rebalance_threshold is not None:
             should_rebalance = abs(target_delta - shares_held) >= rebalance_threshold
         else:
@@ -105,8 +106,8 @@ def delta_hedge_call(S0, K, T, r, sigma_realized, sigma_implied=None, q=0, n_ste
     portfolio_value = cash + shares_held * S_T
     final_pnl = portfolio_value - option_payoff
 
-    # P&L "mark-to-market" à chaque instant : valeur du portefeuille de couverture
-    # moins la valeur théorique de l'option qu'on doit finir par payer
+    # "Mark-to-market" P&L at each point in time: hedge portfolio value
+    # minus the theoretical value of the option that will eventually need to be paid
     mark_to_market_pnl = np.array(portfolio_values) - np.array(option_values)
 
     return {
@@ -127,59 +128,59 @@ def delta_hedge_call(S0, K, T, r, sigma_realized, sigma_implied=None, q=0, n_ste
 
 if __name__ == "__main__":
 
-    # Une simulation simple : vol réalisée = vol implicite
+    # A simple simulation: realized vol = implied vol
     result = delta_hedge_call(S0=100, K=100, T=1, r=0.05, sigma_realized=0.20, seed=42)
 
-    print(f"Prime encaissée à la vente : {result['option_price_0']:.4f}")
-    print(f"Payoff payé à l'échéance   : {result['option_payoff']:.4f}")
-    print(f"P&L final de la couverture : {result['final_pnl']:.4f}")
+    print(f"Premium collected at sale: {result['option_price_0']:.4f}")
+    print(f"Payoff paid at expiry    : {result['option_payoff']:.4f}")
+    print(f"Final hedge P&L          : {result['final_pnl']:.4f}")
 
-    # Vérification statistique : si vol réalisée = vol implicite, le P&L moyen
-    # sur beaucoup de trajectoires doit être proche de 0 (la couverture réplique l'option)
+    # Statistical check: if realized vol = implied vol, the average P&L
+    # over many paths should be close to 0 (the hedge replicates the option)
     n_paths = 2000
     pnls_matched = [delta_hedge_call(S0=100, K=100, T=1, r=0.05, sigma_realized=0.20)["final_pnl"]
                     for _ in range(n_paths)]
 
-    print(f"\nSur {n_paths} trajectoires, vol réalisée = vol implicite (20%) :")
-    print(f"P&L moyen : {np.mean(pnls_matched):.4f}")
-    print(f"Écart-type du P&L : {np.std(pnls_matched):.4f}")
+    print(f"\nOver {n_paths} paths, realized vol = implied vol (20%):")
+    print(f"Mean P&L: {np.mean(pnls_matched):.4f}")
+    print(f"P&L std dev: {np.std(pnls_matched):.4f}")
 
-    # Si la vol réalisée est plus élevée que la vol implicite (option sous-évaluée
-    # à la vente), le vendeur couvert doit en moyenne PERDRE de l'argent
+    # If realized vol is higher than implied vol (option underpriced
+    # at sale), the hedged seller should on average LOSE money
     pnls_high_vol = [delta_hedge_call(S0=100, K=100, T=1, r=0.05,
                                        sigma_realized=0.35, sigma_implied=0.20)["final_pnl"]
                      for _ in range(n_paths)]
 
-    print(f"\nSur {n_paths} trajectoires, vol réalisée (35%) > vol implicite (20%) :")
-    print(f"P&L moyen : {np.mean(pnls_high_vol):.4f}")
+    print(f"\nOver {n_paths} paths, realized vol (35%) > implied vol (20%):")
+    print(f"Mean P&L: {np.mean(pnls_high_vol):.4f}")
 
-    # Comparaison : rebalancement quotidien (tous les jours) vs hebdomadaire (tous les 5 jours)
-    print(f"\nComparaison quotidien vs hebdomadaire, sur {n_paths} trajectoires (vol réalisée = implicite = 20%) :")
+    # Comparison: daily rebalancing (every day) vs weekly (every 5 days)
+    print(f"\nDaily vs weekly comparison, over {n_paths} paths (realized vol = implied = 20%):")
 
-    for label, rebalance_every in [("Quotidien (tous les jours)", 1), ("Hebdomadaire (tous les 5 jours)", 5)]:
+    for label, rebalance_every in [("Daily (every day)", 1), ("Weekly (every 5 days)", 5)]:
         results = [delta_hedge_call(S0=100, K=100, T=1, r=0.05, sigma_realized=0.20, rebalance_every=rebalance_every)
                    for _ in range(n_paths)]
 
         pnls = [res["final_pnl"] for res in results]
         n_rebalances = [res["n_rebalances"] for res in results]
 
-        print(f"\n{label} :")
-        print(f"  P&L moyen : {np.mean(pnls):.4f}")
-        print(f"  Écart-type du P&L : {np.std(pnls):.4f}")
-        print(f"  Nombre moyen de rebalancements : {np.mean(n_rebalances):.1f}")
+        print(f"\n{label}:")
+        print(f"  Mean P&L: {np.mean(pnls):.4f}")
+        print(f"  P&L std dev: {np.std(pnls):.4f}")
+        print(f"  Average number of rebalances: {np.mean(n_rebalances):.1f}")
 
-    # Troisième mode : rebalancement déclenché par un seuil de mouvement du delta,
-    # plutôt qu'à intervalle fixe
-    print(f"\nComparaison avec un rebalancement par seuil, sur {n_paths} trajectoires :")
+    # Third mode: rebalancing triggered by a delta drift threshold,
+    # instead of a fixed interval
+    print(f"\nComparison with threshold-based rebalancing, over {n_paths} paths:")
 
-    for label, threshold in [("Seuil 5%", 0.05), ("Seuil 10%", 0.10)]:
+    for label, threshold in [("5% threshold", 0.05), ("10% threshold", 0.10)]:
         results = [delta_hedge_call(S0=100, K=100, T=1, r=0.05, sigma_realized=0.20, rebalance_threshold=threshold)
                    for _ in range(n_paths)]
 
         pnls = [res["final_pnl"] for res in results]
         n_rebalances = [res["n_rebalances"] for res in results]
 
-        print(f"\n{label} :")
-        print(f"  P&L moyen : {np.mean(pnls):.4f}")
-        print(f"  Écart-type du P&L : {np.std(pnls):.4f}")
-        print(f"  Nombre moyen de rebalancements : {np.mean(n_rebalances):.1f}")
+        print(f"\n{label}:")
+        print(f"  Mean P&L: {np.mean(pnls):.4f}")
+        print(f"  P&L std dev: {np.std(pnls):.4f}")
+        print(f"  Average number of rebalances: {np.mean(n_rebalances):.1f}")

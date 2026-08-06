@@ -1,4 +1,4 @@
-# Jeux de paramètres (S, K, T, r, sigma, q) réutilisés par les tests de pricing et de Greeks.
+# Parameter sets (S, K, T, r, sigma, q) reused by the pricing and Greeks tests.
 PARAM_COMBOS = [
     (100, 100, 1, 0.05, 0.20, 0.00),
     (100, 100, 1, 0.05, 0.20, 0.03),
