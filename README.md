@@ -1,4 +1,4 @@
-# Equity Derivatives Pricing and Hedging Simulator
+# Equity Derivatives Pricing and Hedging Simulator (with Claude)
 
 *🇫🇷 Version française : branche [`french`](https://github.com/audboc/equity-derivatives-simulator/tree/french)*
 
